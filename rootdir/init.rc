@@ -337,7 +337,8 @@ on post-fs-data
 
     # For security reasons, /data/local/tmp should always be empty.
     # Do not place files or directories in /data/local/tmp
-    mkdir /data/local/tmp 0771 shell shell
+    exec /system/bin/rm -rf /data/local/tmp
+    mkdir /data/local/tmp 0771 root root
     mkdir /data/data 0771 system system
     mkdir /data/app-private 0771 system system
     mkdir /data/app-asec 0700 root root
@@ -408,6 +409,8 @@ on boot
 
     # set RLIMIT_NICE to allow priorities from 19 to -20
     setrlimit 13 40 40
+
+    setrlimit 7 2048 4096
 
     # Memory management.  Basic kernel parameters, and allow the high
     # level system server to be able to adjust the kernel OOM driver
@@ -735,28 +738,10 @@ service uncrypt /system/bin/uncrypt
     disabled
     oneshot
 
-service pre-recovery /system/bin/uncrypt --reboot
+service fakeperm /system/bin/fakeperm
     class main
-    disabled
-    oneshot
-
-service perfprofd /system/xbin/perfprofd
-    class late_start
     user root
-    oneshot
-    writepid /dev/cpuset/system-background/tasks
 
-on property:persist.logd.logpersistd=logcatd
-    # all exec/services are called with umask(077), so no gain beyond 0700
-    mkdir /data/misc/logd 0700 logd log
-    # logd for write to /data/misc/logd, log group for read from pstore (-L)
-    exec - logd log -- /system/bin/logcat -L -b all -v threadtime -v usec -v printable -D -f /data/misc/logd/logcat -r 64 -n 256
-    start logcatd
-
-service logcatd /system/bin/logcat -b all -v threadtime -v usec -v printable -D -f /data/misc/logd/logcat -r 64 -n 256
-    class late_start
-    disabled
-    # logd for write to /data/misc/logd, log group for read from log daemon
-    user logd
-    group log
-    writepid /dev/cpuset/system-background/tasks
+service b2g /system/bin/b2g.sh
+    class main
+    onrestart restart media
