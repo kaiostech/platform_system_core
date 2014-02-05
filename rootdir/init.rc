@@ -742,6 +742,10 @@ service fakeperm /system/bin/fakeperm
     class main
     user root
 
+service gonksched /system/bin/gonksched
+    class main
+    user root
+
 service b2g /system/bin/b2g.sh
     class main
     onrestart restart media
