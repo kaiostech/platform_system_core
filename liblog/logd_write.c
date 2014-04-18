@@ -437,12 +437,12 @@ int __android_log_buf_print(int bufID, int prio, const char *tag, const char *fm
 void __android_log_assert(const char *cond, const char *tag,
                           const char *fmt, ...)
 {
-    char buf[LOG_BUF_SIZE];
+    char buf[LOG_BUF_SIZE/4] = {};
 
     if (fmt) {
         va_list ap;
         va_start(ap, fmt);
-        vsnprintf(buf, LOG_BUF_SIZE, fmt, ap);
+        vsnprintf(buf, LOG_BUF_SIZE/4, fmt, ap);
         va_end(ap);
     } else {
         /* Msg not provided, log condition.  N.B. Do not use cond directly as
@@ -450,7 +450,7 @@ void __android_log_assert(const char *cond, const char *tag,
          * "%d" in "blocks%devs == 0").
          */
         if (cond)
-            snprintf(buf, LOG_BUF_SIZE, "Assertion failed: %s", cond);
+            snprintf(buf, LOG_BUF_SIZE/4, "Assertion failed: %s", cond);
         else
             strcpy(buf, "Unspecified assertion failed");
     }
