@@ -1,3 +1,5 @@
+ifneq ($(TARGET_USES_LOGD),false)
+
 LOCAL_PATH:= $(call my-dir)
 
 include $(CLEAR_VARS)
@@ -53,3 +55,5 @@ LOCAL_POST_INSTALL_CMD := $(hide) $(foreach t,$(filter-out $(LOCAL_MODULE),$(ALL
 include $(BUILD_PREBUILT)
 
 include $(call first-makefiles-under,$(LOCAL_PATH))
+
+endif
