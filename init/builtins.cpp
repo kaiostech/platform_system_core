@@ -306,12 +306,17 @@ int do_mount(int nargs, char **args)
     target = args[3];
 
     if (!strncmp(source, "mtd@", 4)) {
-        n = mtd_name_to_number(source + 4);
-        if (n < 0) {
-            return -1;
-        }
-
-        snprintf(tmp, sizeof(tmp), "/dev/block/mtdblock%d", n);
+        if (!strncmp(system, "ubifs", 5)) {
+            /* use ubi0:<vol_name> format to mount*/
+            sprintf(tmp, "ubi0:%s", source + 4);
+        } else {
+            n = mtd_name_to_number(source + 4);
+            if (n < 0) {
+              ERROR("Could not find mtd partition for: \"%s\"\n", source + 4);
+              return -1;
+            }
+            snprintf(tmp, sizeof(tmp), "/dev/block/mtdblock%d", n);
+       }
 
         if (wait)
             wait_for_file(tmp, COMMAND_RETRY_TIMEOUT);
