@@ -402,6 +402,7 @@ int do_mount_all(int nargs, char **args)
     int child_ret = -1;
     int status;
     char boot_mode[PROP_VALUE_MAX] = {0};
+    bool is_ffbm = false;
     struct fstab *fstab;
 
     if (nargs != 2) {
@@ -443,12 +444,21 @@ int do_mount_all(int nargs, char **args)
         return -1;
     }
 
+    property_get("ro.bootmode", boot_mode);
+    if (!strncmp(boot_mode, "ffbm", 4)){
+        NOTICE("enter ffbm mode,skip encryption and decryption\n");
+        is_ffbm = true;
+    }
+
     if (ret == FS_MGR_MNTALL_DEV_NEEDS_ENCRYPTION) {
-        property_set("vold.decrypt", "trigger_encryption");
+        if (!is_ffbm)
+            property_set("vold.decrypt", "trigger_encryption");
     } else if (ret == FS_MGR_MNTALL_DEV_MIGHT_BE_ENCRYPTED) {
         property_set("ro.crypto.state", "encrypted");
         property_set("ro.crypto.type", "block");
-        property_set("vold.decrypt", "trigger_default_encryption");
+
+       if (!is_ffbm)
+           property_set("vold.decrypt", "trigger_default_encryption");
     } else if (ret == FS_MGR_MNTALL_DEV_NOT_ENCRYPTED) {
         property_set("ro.crypto.state", "unencrypted");
         /* If fs_mgr determined this is an unencrypted device and we are
@@ -456,7 +466,7 @@ int do_mount_all(int nargs, char **args)
 	 * that action.
          */
         property_get("ro.bootmode", boot_mode);
-        if (strncmp(boot_mode, "ffbm", 4))
+        if (!is_ffbm)
             action_for_each_trigger("nonencrypted", action_add_queue_tail);
     } else if (ret == FS_MGR_MNTALL_DEV_NEEDS_RECOVERY) {
         /* Setup a wipe via recovery, and reboot into recovery */
@@ -472,8 +482,7 @@ int do_mount_all(int nargs, char **args)
 
         // Although encrypted, we have device key, so we do not need to
         // do anything different from the nonencrypted case.
-        property_get("ro.bootmode", boot_mode);
-        if (strncmp(boot_mode, "ffbm", 4))
+        if (!is_ffbm)
             action_for_each_trigger("nonencrypted", action_add_queue_tail);
     } else if (ret == FS_MGR_MNTALL_DEV_NON_DEFAULT_FILE_ENCRYPTED) {
         if (e4crypt_install_keyring()) {
