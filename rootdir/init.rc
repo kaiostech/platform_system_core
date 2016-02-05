@@ -8,7 +8,7 @@ import /init.environ.rc
 import /init.usb.rc
 import /init.${ro.hardware}.rc
 import /init.usb.configfs.rc
-import /init.${ro.zygote}.rc
+import /init.b2g.rc
 import /init.trace.rc
 import /init.bluetooth.rc
 
@@ -573,12 +573,6 @@ service logd-reinit /system/bin/logd --reinit
     writepid /dev/cpuset/system-background/tasks
     disabled
 
-service healthd /sbin/healthd
-    class core
-    critical
-    seclabel u:r:healthd:s0
-    group root system
-
 service console /system/bin/sh
     class core
     console
@@ -648,13 +642,6 @@ service ril-daemon /system/bin/rild
     socket rild-debug stream 660 radio system
     user root
     group radio cache inet misc audio log qcom_diag
-
-service surfaceflinger /system/bin/surfaceflinger
-    class core
-    user system
-    group graphics drmrpc
-    onrestart restart zygote
-    writepid /dev/cpuset/system-background/tasks
 
 service drm /system/bin/drmserver
     class main
