@@ -495,8 +495,9 @@ static void dump_log_file(
     return;
   }
 
+  (void) pid;
   logger_list = android_logger_list_open(
-      android_name_to_log_id(filename), ANDROID_LOG_RDONLY | ANDROID_LOG_NONBLOCK, tail, pid);
+      android_name_to_log_id(filename), ANDROID_LOG_RDONLY | ANDROID_LOG_NONBLOCK, tail, 0);
 
   if (!logger_list) {
     ALOGE("Unable to open %s: %s\n", filename, strerror(errno));
