@@ -263,11 +263,12 @@ int adb_main(int is_daemon, int server_port)
     ** AID_NET_BT and AID_NET_BT_ADMIN to diagnose bluetooth (hcidump)
     ** AID_SDCARD_R to allow reading from the SD card
     ** AID_SDCARD_RW to allow writing to the SD card
+    ** AID_MEDIA_RW to allow writing to the SD card (without the sdcard daemon)
     ** AID_NET_BW_STATS to read out qtaguid statistics
     */
     gid_t groups[] = { AID_ADB, AID_LOG, AID_INPUT, AID_INET, AID_NET_BT,
                        AID_NET_BT_ADMIN, AID_SDCARD_R, AID_SDCARD_RW,
-                       AID_NET_BW_STATS };
+                       AID_MEDIA_RW, AID_NET_BW_STATS };
     if (setgroups(sizeof(groups)/sizeof(groups[0]), groups) != 0) {
         exit(1);
     }
