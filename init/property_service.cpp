@@ -92,27 +92,7 @@ void property_init() {
 
 static int check_mac_perms(const char *name, char *sctx)
 {
-    if (is_selinux_enabled() <= 0)
-        return 1;
-
-    char *tctx = NULL;
-    int result = 0;
-
-    if (!sctx)
-        goto err;
-
-    if (!sehandle_prop)
-        goto err;
-
-    if (selabel_lookup(sehandle_prop, &tctx, name, 1) != 0)
-        goto err;
-
-    if (selinux_check_access(sctx, tctx, "property_service", "set", (void*) name) == 0)
-        result = 1;
-
-    freecon(tctx);
- err:
-    return result;
+    return 1;
 }
 
 static int check_control_mac_perms(const char *name, char *sctx)
@@ -317,8 +297,6 @@ static void handle_property_set_fd()
             return;
         }
 
-        getpeercon(s, &source_ctx);
-
         if(memcmp(msg.name,"ctl.",4) == 0) {
             // Keep the old close-socket-early behavior when handling
             // ctl.* properties.
@@ -342,7 +320,6 @@ static void handle_property_set_fd()
             // the property is written to memory.
             close(s);
         }
-        freecon(source_ctx);
         break;
 
     default:

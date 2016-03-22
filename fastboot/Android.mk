@@ -65,7 +65,6 @@ LOCAL_STATIC_LIBRARIES := \
     libbase
 
 ifneq ($(HOST_OS),windows)
-LOCAL_STATIC_LIBRARIES += libselinux
 endif # HOST_OS != windows
 
 ifeq ($(HOST_OS),linux)

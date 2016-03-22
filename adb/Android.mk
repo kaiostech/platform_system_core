@@ -254,7 +254,6 @@ LOCAL_STATIC_LIBRARIES := \
     libcutils \
     libc \
     libmincrypt \
-    libselinux \
     libext4_utils_static \
 
 include $(BUILD_EXECUTABLE)

@@ -220,43 +220,6 @@ void service_start(struct service *svc, const char *dynamic_args)
     }
 
     char* scon = NULL;
-    if (is_selinux_enabled() > 0) {
-        if (svc->seclabel) {
-            scon = strdup(svc->seclabel);
-            if (!scon) {
-                ERROR("Out of memory while starting '%s'\n", svc->name);
-                return;
-            }
-        } else {
-            char *mycon = NULL, *fcon = NULL;
-
-            INFO("computing context for service '%s'\n", svc->args[0]);
-            int rc = getcon(&mycon);
-            if (rc < 0) {
-                ERROR("could not get context while starting '%s'\n", svc->name);
-                return;
-            }
-
-            rc = getfilecon(svc->args[0], &fcon);
-            if (rc < 0) {
-                ERROR("could not get context while starting '%s'\n", svc->name);
-                freecon(mycon);
-                return;
-            }
-
-            rc = security_compute_create(mycon, fcon, string_to_security_class("process"), &scon);
-            if (rc == 0 && !strcmp(scon, mycon)) {
-                ERROR("Warning!  Service %s needs a SELinux domain defined; please fix!\n", svc->name);
-            }
-            freecon(mycon);
-            freecon(fcon);
-            if (rc < 0) {
-                ERROR("could not get context while starting '%s'\n", svc->name);
-                return;
-            }
-        }
-    }
-
     NOTICE("Starting service '%s'...\n", svc->name);
 
     pid_t pid = fork();
@@ -286,9 +249,6 @@ void service_start(struct service *svc, const char *dynamic_args)
                 publish_socket(si->name, s);
             }
         }
-
-        freecon(scon);
-        scon = NULL;
 
         if (svc->writepid_files_) {
             std::string pid_str = android::base::StringPrintf("%d", pid);
@@ -344,12 +304,6 @@ void service_start(struct service *svc, const char *dynamic_args)
                 _exit(127);
             }
         }
-        if (svc->seclabel) {
-            if (is_selinux_enabled() > 0 && setexeccon(svc->seclabel) < 0) {
-                ERROR("cannot setexeccon('%s'): %s\n", svc->seclabel, strerror(errno));
-                _exit(127);
-            }
-        }
 
         if (!dynamic_args) {
             if (execve(svc->args[0], (char**) svc->args, (char**) ENV) < 0) {
@@ -375,8 +329,6 @@ void service_start(struct service *svc, const char *dynamic_args)
         }
         _exit(127);
     }
-
-    freecon(scon);
 
     if (pid < 0) {
         ERROR("failed to start '%s'\n", svc->name);
@@ -867,123 +819,17 @@ static int queue_property_triggers_action(int nargs, char **args)
     return 0;
 }
 
-static void selinux_init_all_handles(void)
-{
-    sehandle = selinux_android_file_context_handle();
-    selinux_android_set_sehandle(sehandle);
-    sehandle_prop = selinux_android_prop_context_handle();
-}
-
 enum selinux_enforcing_status { SELINUX_DISABLED, SELINUX_PERMISSIVE, SELINUX_ENFORCING };
-
-static selinux_enforcing_status selinux_status_from_cmdline() {
-    selinux_enforcing_status status = SELINUX_ENFORCING;
-
-    std::function<void(char*,bool)> fn = [&](char* name, bool in_qemu) {
-        char *value = strchr(name, '=');
-        if (value == nullptr) { return; }
-        *value++ = '\0';
-        if (strcmp(name, "androidboot.selinux") == 0) {
-            if (strcmp(value, "disabled") == 0) {
-                status = SELINUX_DISABLED;
-            } else if (strcmp(value, "permissive") == 0) {
-                status = SELINUX_PERMISSIVE;
-            }
-        }
-    };
-    import_kernel_cmdline(false, fn);
-
-    return status;
-}
-
-
-static bool selinux_is_disabled(void)
-{
-    if (ALLOW_DISABLE_SELINUX) {
-        if (access("/sys/fs/selinux", F_OK) != 0) {
-            // SELinux is not compiled into the kernel, or has been disabled
-            // via the kernel command line "selinux=0".
-            return true;
-        }
-        return selinux_status_from_cmdline() == SELINUX_DISABLED;
-    }
-
-    return false;
-}
-
-static bool selinux_is_enforcing(void)
-{
-    if (ALLOW_DISABLE_SELINUX) {
-        return selinux_status_from_cmdline() == SELINUX_ENFORCING;
-    }
-    return true;
-}
 
 int selinux_reload_policy(void)
 {
-    if (selinux_is_disabled()) {
-        return -1;
-    }
-
-    INFO("SELinux: Attempting to reload policy files\n");
-
-    if (selinux_android_reload_policy() == -1) {
-        return -1;
-    }
-
-    if (sehandle)
-        selabel_close(sehandle);
-
-    if (sehandle_prop)
-        selabel_close(sehandle_prop);
-
-    selinux_init_all_handles();
-    return 0;
-}
-
-static int audit_callback(void *data, security_class_t /*cls*/, char *buf, size_t len) {
-    snprintf(buf, len, "property=%s", !data ? "NULL" : (char *)data);
-    return 0;
+    return -1;
 }
 
 static void security_failure() {
     ERROR("Security failure; rebooting into recovery mode...\n");
     android_reboot(ANDROID_RB_RESTART2, 0, "recovery");
     while (true) { pause(); }  // never reached
-}
-
-static void selinux_initialize(bool in_kernel_domain) {
-    Timer t;
-
-    selinux_callback cb;
-    cb.func_log = selinux_klog_callback;
-    selinux_set_callback(SELINUX_CB_LOG, cb);
-    cb.func_audit = audit_callback;
-    selinux_set_callback(SELINUX_CB_AUDIT, cb);
-
-    if (selinux_is_disabled()) {
-        return;
-    }
-
-    if (in_kernel_domain) {
-        INFO("Loading SELinux policy...\n");
-        if (selinux_android_load_policy() < 0) {
-            ERROR("failed to load policy: %s\n", strerror(errno));
-            security_failure();
-        }
-
-        bool is_enforcing = selinux_is_enforcing();
-        security_setenforce(is_enforcing);
-
-        if (write_file("/sys/fs/selinux/checkreqprot", "0") == -1) {
-            security_failure();
-        }
-
-        NOTICE("(Initializing SELinux %s took %.2fs.)\n",
-               is_enforcing ? "enforcing" : "non-enforcing", t.duration());
-    } else {
-        selinux_init_all_handles();
-    }
 }
 
 int main(int argc, char** argv) {
@@ -1038,9 +884,6 @@ int main(int argc, char** argv) {
         // used by init as well as the current required properties.
         export_kernel_boot_props();
     }
-
-    // Set up SELinux, including loading the SELinux policy if we're in the kernel domain.
-    selinux_initialize(is_first_stage);
 
     // If we're in the kernel domain, re-exec init to transition to the init domain now
     // that the SELinux policy has been loaded.

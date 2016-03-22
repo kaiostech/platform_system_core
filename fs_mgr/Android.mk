@@ -39,7 +39,7 @@ LOCAL_MODULE_PATH := $(TARGET_ROOT_OUT)/sbin
 LOCAL_UNSTRIPPED_PATH := $(TARGET_ROOT_OUT_UNSTRIPPED)
 
 LOCAL_STATIC_LIBRARIES := libfs_mgr liblogwrap libcutils liblog libc libmincrypt libext4_utils_static libsquashfs_utils
-LOCAL_STATIC_LIBRARIES += libsparse_static libz libselinux
+LOCAL_STATIC_LIBRARIES += libsparse_static libz
 LOCAL_CXX_STL := libc++_static
 
 LOCAL_CFLAGS := -Werror

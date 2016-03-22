@@ -24,7 +24,6 @@
 
 #include <base/stringprintf.h>
 #include <private/android_filesystem_config.h>
-#include <selinux/selinux.h>
 
 #include "ueventd.h"
 #include "log.h"
@@ -56,10 +55,6 @@ int ueventd_main(int argc, char **argv)
     klog_set_level(KLOG_NOTICE_LEVEL);
 
     NOTICE("ueventd started!\n");
-
-    selinux_callback cb;
-    cb.func_log = selinux_klog_callback;
-    selinux_set_callback(SELINUX_CB_LOG, cb);
 
     char hardware[PROP_VALUE_MAX];
     property_get("ro.hardware", hardware);

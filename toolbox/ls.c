@@ -13,8 +13,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#include <selinux/selinux.h>
-
 // simple dynamic array of strings.
 typedef struct {
     int count;
@@ -351,7 +349,6 @@ static int listfile_maclabel(const char *path, struct stat *s)
         name++;
     }
 
-    lgetfilecon(path, &maclabel);
     if (!maclabel) {
         return -1;
     }
