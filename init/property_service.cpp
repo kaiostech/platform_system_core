@@ -43,9 +43,6 @@
 #include <sys/mman.h>
 #include <private/android_filesystem_config.h>
 
-#include <selinux/selinux.h>
-#include <selinux/label.h>
-
 #include <fs_mgr.h>
 #include <base/file.h>
 #include "bootimg.h"

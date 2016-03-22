@@ -37,10 +37,6 @@
 
 #include <mtd/mtd-user.h>
 
-#include <selinux/selinux.h>
-#include <selinux/label.h>
-#include <selinux/android.h>
-
 #include <base/file.h>
 #include <base/stringprintf.h>
 #include <cutils/android_reboot.h>
