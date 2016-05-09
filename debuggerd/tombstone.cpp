@@ -787,17 +787,8 @@ char* engrave_tombstone(pid_t pid, pid_t tid, int signal, int original_si_code,
   log.current_tid = tid;
   log.crashed_tid = tid;
 
-  if ((mkdir(TOMBSTONE_DIR, 0755) == -1) && (errno != EEXIST)) {
-    _LOG(&log, logtype::ERROR, "failed to create %s: %s\n", TOMBSTONE_DIR, strerror(errno));
-  }
-
-  if (chown(TOMBSTONE_DIR, AID_SYSTEM, AID_SYSTEM) == -1) {
-    _LOG(&log, logtype::ERROR, "failed to change ownership of %s: %s\n", TOMBSTONE_DIR, strerror(errno));
-  }
-
   int fd = -1;
-  char* path = NULL;
-  path = find_and_open_tombstone(&fd);
+  char* path = find_and_open_tombstone(&fd);
 
   if (fd < 0) {
     _LOG(&log, logtype::ERROR, "Skipping tombstone write, nothing to do.\n");
