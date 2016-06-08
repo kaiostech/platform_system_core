@@ -70,10 +70,15 @@ static bool remount_partition(int fd, const char* dir) {
     if (dev.empty()) {
         return true;
     }
-    if (!make_block_device_writable(dev)) {
-        WriteFdFmt(fd, "remount of %s failed; couldn't make block device %s writable: %s\n",
-                   dir, dev.c_str(), strerror(errno));
-        return false;
+
+    // BLKROSET ioctl does not need to be called for UBIFS devices since
+    // they are never set to read-only
+    if (strncmp(dev.c_str(), "ubi", sizeof("ubi") - 1) != 0) {
+      if (!make_block_device_writable(dev)) {
+          WriteFdFmt(fd, "remount of %s failed; couldn't make block device %s writable: %s\n",
+              dir, dev.c_str(), strerror(errno));
+          return false;
+      }
     }
     if (mount(dev.c_str(), dir, "none", MS_REMOUNT, nullptr) == -1) {
         WriteFdFmt(fd, "remount of %s failed: %s\n", dir, strerror(errno));
