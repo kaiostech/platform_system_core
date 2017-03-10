@@ -686,6 +686,11 @@ int fs_mgr_mount_all(struct fstab *fstab)
                 }
                 encryptable = FS_MGR_MNTALL_DEV_MIGHT_BE_ENCRYPTED;
             } else {
+                if ((fstab->recs[attempted_idx].fs_mgr_flags & MF_NOFAIL) != 0) {
+                    ERROR("NOFAIL is true, ignoring failed mount for device %s",
+                          fstab->recs[attempted_idx].blk_device);
+                    continue;
+                }
                 ERROR("Failed to mount an un-encryptable or wiped partition on"
                        "%s at %s options: %s error: %s\n",
                        fstab->recs[attempted_idx].blk_device, fstab->recs[attempted_idx].mount_point,
