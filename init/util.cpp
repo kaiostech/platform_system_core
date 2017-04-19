@@ -24,6 +24,9 @@
 #include <time.h>
 #include <ftw.h>
 
+#include <selinux/label.h>
+#include <selinux/android.h>
+
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -92,11 +95,17 @@ int create_socket(const char *name, int type, mode_t perm, uid_t uid,
     int fd, ret;
     char *filecon;
 
+    if (socketcon)
+        setsockcreatecon(socketcon);
+
     fd = socket(PF_UNIX, type, 0);
     if (fd < 0) {
         ERROR("Failed to open socket '%s': %s\n", name, strerror(errno));
         return -1;
     }
+
+  if (socketcon)
+        setsockcreatecon(NULL);
 
     memset(&addr, 0 , sizeof(addr));
     addr.sun_family = AF_UNIX;
@@ -110,12 +119,21 @@ int create_socket(const char *name, int type, mode_t perm, uid_t uid,
     }
 
     filecon = NULL;
+    if (sehandle) {
+        ret = selabel_lookup(sehandle, &filecon, addr.sun_path, S_IFSOCK);
+        if (ret == 0)
+            setfscreatecon(filecon);
+    }
 
     ret = bind(fd, (struct sockaddr *) &addr, sizeof (addr));
     if (ret) {
         ERROR("Failed to bind socket '%s': %s\n", name, strerror(errno));
         goto out_unlink;
     }
+
+    setfscreatecon(NULL);
+    freecon(filecon);
+
 
     chown(addr.sun_path, uid, gid);
     chmod(addr.sun_path, perm);
@@ -415,17 +433,35 @@ void import_kernel_cmdline(bool in_qemu, std::function<void(char*,bool)> import_
 
 int make_dir(const char *path, mode_t mode)
 {
-    return mkdir(path, mode);
+  int rc;
+
+    char *secontext = NULL;
+
+    if (sehandle) {
+        selabel_lookup(sehandle, &secontext, path, mode);
+        setfscreatecon(secontext);
+    }
+
+    rc = mkdir(path, mode);
+
+    if (secontext) {
+        int save_errno = errno;
+        freecon(secontext);
+        setfscreatecon(NULL);
+        errno = save_errno;
+    }
+
+    return rc;
 }
 
 int restorecon(const char* pathname)
 {
-    return 0;
+       return selinux_android_restorecon(pathname, 0);
 }
 
 int restorecon_recursive(const char* pathname)
 {
-    return 0;
+       return selinux_android_restorecon(pathname, SELINUX_ANDROID_RESTORECON_RECURSE);
 }
 
 /*

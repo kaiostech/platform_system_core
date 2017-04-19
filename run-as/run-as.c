@@ -32,6 +32,7 @@
 #include <unistd.h>
 
 #include <private/android_filesystem_config.h>
+#include <selinux/android.h>
 
 #include "package.h"
 
@@ -186,6 +187,10 @@ int main(int argc, char **argv)
     memset(&capdata, 0, sizeof(capdata));
     if (capset(&capheader, &capdata[0]) < 0) {
         panic("Could not clear all capabilities: %s\n", strerror(errno));
+    }
+
+    if (selinux_android_setcontext(uid, 0, info.seinfo, pkgname) < 0) {
+        panic("Could not set SELinux security context: %s\n", strerror(errno));
     }
 
     /* cd into the data directory */

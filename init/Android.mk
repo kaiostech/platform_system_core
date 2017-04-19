@@ -65,6 +65,7 @@ LOCAL_STATIC_LIBRARIES := \
     libutils \
     liblog \
     libc \
+    libselinux \
     libmincrypt \
     libc++_static \
     libdl \

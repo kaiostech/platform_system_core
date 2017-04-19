@@ -70,6 +70,7 @@ LOCAL_CFLAGS += $(common_cflags)
 
 LOCAL_SHARED_LIBRARIES := \
     libcutils \
+    libselinux \
 
 LOCAL_WHOLE_STATIC_LIBRARIES := $(patsubst %,libtoolbox_%,$(BSD_TOOLS))
 
