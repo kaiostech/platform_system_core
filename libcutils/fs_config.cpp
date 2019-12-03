@@ -147,7 +147,12 @@ static const char* conf[][2] = {
 // Vendor entries should be done via a vendor or device specific config.fs.
 // See https://source.android.com/devices/tech/config/filesystem#using-file-system-capabilities
 static const struct fs_path_config android_files[] = {
-        // clang-format off
+    // clang-format off
+    { 00775, AID_ROOT,      AID_ROOT,      0, "system/b2g/b2g" },
+    { 00775, AID_ROOT,      AID_ROOT,      0, "system/b2g/updater" },
+    { 00775, AID_ROOT,      AID_ROOT,      0, "system/b2g/plugin-container" },
+    { 00775, AID_ROOT,      AID_ROOT,      0, "system/kaios/api-daemon" },
+    { 00775, AID_ROOT,      AID_ROOT,      0, "system/kaios/metrics_daemon" },
     { 00644, AID_SYSTEM,    AID_SYSTEM,    0, "data/app/*" },
     { 00644, AID_SYSTEM,    AID_SYSTEM,    0, "data/app-ephemeral/*" },
     { 00644, AID_SYSTEM,    AID_SYSTEM,    0, "data/app-private/*" },
