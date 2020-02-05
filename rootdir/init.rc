@@ -10,7 +10,6 @@ import /init.usb.rc
 import /init.${ro.hardware}.rc
 import /vendor/etc/init/hw/init.${ro.hardware}.rc
 import /init.usb.configfs.rc
-import /init.${ro.zygote}.rc
 
 # Cgroups are mounted right before early-init using list from /etc/cgroups.json
 on early-init
@@ -337,9 +336,6 @@ on late-init
     # Load persist properties and override properties (if enabled) from /data.
     trigger load_persist_props_action
 
-    # Now we can start zygote for devices with file based encryption
-    trigger zygote-start
-
     # Remove a file to wake up anything waiting for firmware.
     trigger firmware_mounts_complete
 
@@ -624,29 +620,6 @@ on post-fs-data
     chown root system /dev/fscklogs/log
     chmod 0770 /dev/fscklogs/log
 
-# It is recommended to put unnecessary data/ initialization from post-fs-data
-# to start-zygote in device's init.rc to unblock zygote start.
-on zygote-start && property:ro.crypto.state=unencrypted
-    # A/B update verifier that marks a successful boot.
-    exec_start update_verifier_nonencrypted
-    start netd
-    start zygote
-    start zygote_secondary
-
-on zygote-start && property:ro.crypto.state=unsupported
-    # A/B update verifier that marks a successful boot.
-    exec_start update_verifier_nonencrypted
-    start netd
-    start zygote
-    start zygote_secondary
-
-on zygote-start && property:ro.crypto.state=encrypted && property:ro.crypto.type=file
-    # A/B update verifier that marks a successful boot.
-    exec_start update_verifier_nonencrypted
-    start netd
-    start zygote
-    start zygote_secondary
-
 on boot
     # basic network init
     ifup lo
@@ -772,7 +745,6 @@ on property:vold.decrypt=trigger_load_persist_props
 
 on property:vold.decrypt=trigger_post_fs_data
     trigger post-fs-data
-    trigger zygote-start
 
 on property:vold.decrypt=trigger_restart_min_framework
     # A/B update verifier that marks a successful boot.
